@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 
     //opencv vedio
     VideoCapture capture(0);
-    capture.open("/home/rosen/下载/Task/Video1.avi");
+    capture.open("/home/rosen/桌面/Rosen/RM/ES_Detect/Video1.avi");
     if (!capture.isOpened())
     {
         printf("could not find video data file...\n");
@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 
     //create windows
     namedWindow("Origin", WINDOW_AUTOSIZE);
-    namedWindow("Video", WINDOW_AUTOSIZE);
+    // namedWindow("Video", WINDOW_AUTOSIZE);
     moveWindow("Origin", 800, 90);
 
     while (capture.read(frame))
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
         //显示图像
         imshow("Origin", frame);
-        imshow("Video", dst);
+        // imshow("Video", dst);
 
         if (waitKey(30) == 27)
         {
