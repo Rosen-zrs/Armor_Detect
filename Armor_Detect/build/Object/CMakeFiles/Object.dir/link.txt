@@ -1,0 +1,2 @@
+/usr/bin/ar qc libObject.a  CMakeFiles/Object.dir/Armor.cpp.o CMakeFiles/Object.dir/Light.cpp.o
+/usr/bin/ranlib libObject.a

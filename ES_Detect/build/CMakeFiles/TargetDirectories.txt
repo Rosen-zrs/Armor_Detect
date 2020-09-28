@@ -1,6 +1,0 @@
-/home/rosen/桌面/Rosen/RM/ES_Detect/build/CMakeFiles/rebuild_cache.dir
-/home/rosen/桌面/Rosen/RM/ES_Detect/build/CMakeFiles/Detect.dir
-/home/rosen/桌面/Rosen/RM/ES_Detect/build/CMakeFiles/edit_cache.dir
-/home/rosen/桌面/Rosen/RM/ES_Detect/build/Class/CMakeFiles/rebuild_cache.dir
-/home/rosen/桌面/Rosen/RM/ES_Detect/build/Class/CMakeFiles/Class.dir
-/home/rosen/桌面/Rosen/RM/ES_Detect/build/Class/CMakeFiles/edit_cache.dir

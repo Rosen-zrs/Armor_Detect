@@ -1,6 +1,0 @@
-/home/rosen/桌面/Rosen/RM/Armor_Detect/build/CMakeFiles/rebuild_cache.dir
-/home/rosen/桌面/Rosen/RM/Armor_Detect/build/CMakeFiles/Detect.dir
-/home/rosen/桌面/Rosen/RM/Armor_Detect/build/CMakeFiles/edit_cache.dir
-/home/rosen/桌面/Rosen/RM/Armor_Detect/build/Object/CMakeFiles/rebuild_cache.dir
-/home/rosen/桌面/Rosen/RM/Armor_Detect/build/Object/CMakeFiles/Object.dir
-/home/rosen/桌面/Rosen/RM/Armor_Detect/build/Object/CMakeFiles/edit_cache.dir

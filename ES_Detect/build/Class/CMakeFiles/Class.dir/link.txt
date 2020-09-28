@@ -1,2 +1,0 @@
-/usr/bin/ar qc libClass.a  CMakeFiles/Class.dir/energy_switch.cpp.o
-/usr/bin/ranlib libClass.a
