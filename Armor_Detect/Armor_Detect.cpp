@@ -1,12 +1,16 @@
 #include "Object/include/Armor.h"
 #include "Object/include/Light.h"
 #include "Object/include/Match_Condition.h"
+#include <iostream>
+#include <math.h>
 #include <time.h>
+
+#define DEBUG
 
 using namespace cv;
 using namespace std;
 
-void swap(float width, float height);
+// void swap(float width, float height);
 RotatedRect tranform_rect(RotatedRect &rect);
 float distance(Point2f p1, Point2f p2);
 
@@ -22,11 +26,14 @@ int main()
         return -1;
     }
 
+#ifdef DEBUG
     namedWindow("Origin", WINDOW_NORMAL);
     namedWindow("Video", WINDOW_NORMAL);
     resizeWindow("Origin", Size(640, 480));
     resizeWindow("Video", Size(640, 480));
     moveWindow("Origin", 800, 90);
+#endif // DEBUG
+    
 
     //定义Mat变量
     Mat frame, src, dst;
@@ -89,12 +96,16 @@ int main()
             if (contours[i].size() > 5)
             {
                 rect = fitEllipse(contours[i]);
+
+                //adjust the rect for screen
                 tranform_rect(rect);
+
                 rect.points(vertices);
 
                 float contour_area = contourArea(contours[i]);
 
-                if(rect.size.width / rect.size.height > MATCH_COND.MAX_WH_RATIO || contour_area/rect.size.area() < MATCH_COND.MIN_AREA_FULL) continue;
+                if (rect.size.width / rect.size.height > MATCH_COND.MAX_WH_RATIO || rect.size.height / rect.size.width > 4.5 || contour_area / rect.size.area() < MATCH_COND.MIN_AREA_FULL)
+                    continue;
 
                 //draw rectangle
                 for (int i = 0; i < 4; i++)
@@ -106,7 +117,6 @@ int main()
                 lights.push_back(light);
             }
         }
-
 
         Light aim_light[2];
         bool flag = false;
@@ -120,63 +130,91 @@ int main()
         //Matching the light
         for (auto male_light : lights)
         {
-            aim_light[0] = male_light;
             for (auto female_light : lights)
             {
                 if (female_light != male_light)
                 {
                     //calc the matching character
-                    float area_ratio_diff = abs((male_light.get_area() / female_light.get_area()) - 1);
-                    float perimeter_ratio_diff = abs((male_light.get_perimeter() / female_light.get_perimeter()) - 1);
-                    float width_ratio_diff = abs((male_light.get_width() / female_light.get_width()) - 1);
-                    float height_ratio_diff = abs((male_light.get_height() / female_light.get_height()) - 1);
+
+                    //area screen
+                    float area_ratio_diff = abs(male_light.get_area() - female_light.get_area());
+
+                    if (area_ratio_diff > male_light.get_area() * MATCH_COND.MAX_AREA_RATIO_DIFF && area_ratio_diff > female_light.get_area() * MATCH_COND.MAX_AREA_RATIO_DIFF)
+                        continue;
+
+                    //perimeter screen
+                    float perimeter_ratio_diff = abs(male_light.get_perimeter() - female_light.get_perimeter());
+                    if (perimeter_ratio_diff > male_light.get_perimeter() * MATCH_COND.MAX_PERIMRTER_RATIO_DIFF && perimeter_ratio_diff > female_light.get_perimeter() * MATCH_COND.MAX_PERIMRTER_RATIO_DIFF)
+                        continue;
+
+                    //width and height screen
+                    float width_ratio_diff = abs(male_light.get_width() - female_light.get_width());
+                    if (width_ratio_diff > male_light.get_width() * MATCH_COND.MAX_WIDTH_RATIO_DIFF && width_ratio_diff > female_light.get_width() * MATCH_COND.MAX_WIDTH_RATIO_DIFF)
+                        continue;
+
+                    float height_ratio_diff = abs(male_light.get_height() - female_light.get_height());
+                    if (height_ratio_diff > male_light.get_height() * MATCH_COND.MAX_HEIGHT_RATIO_DIFF && height_ratio_diff > female_light.get_height() * MATCH_COND.MAX_HEIGHT_RATIO_DIFF)
+                        continue;
+
                     float angle_ratio_diff = abs(male_light.get_angle() - female_light.get_angle());
+                    if (angle_ratio_diff > MATCH_COND.MAX_ANGLE_DIFF)
+                        continue;
+
                     float center_dis_diff = distance(male_light.get_center(), female_light.get_center());
                     float center_y_diff = abs(male_light.get_center().y - female_light.get_center().y);
+                    float center_x_diff = abs(male_light.get_center().x - female_light.get_center().x);
 
-                    // cout << male_light.get_area() << ',' << female_light.get_area() << ',' << area_ratio_diff << ',' << perimeter_ratio_diff << ',' << width_ratio_diff << ',' << 
+                    //clac slope of center and rect
+                    // float center_slope = 0 - abs(center_y_diff / center_x_diff);
+                    // float mean_rect_slope = (tan(male_light.get_angle() + 90) + tan(female_light.get_angle() + 90 ) / 2);
+                    // float slope_diff = abs(center_slope * mean_rect_slope + 1);
+                    // if(slope_diff > MATCH_COND.MAX_SLOPE_DIFF) continue;
+
+                    // cout << male_light.get_area() << ',' << female_light.get_area() << ',' << area_ratio_diff << ',' << perimeter_ratio_diff << ',' << width_ratio_diff << ',' <<
                     // height_ratio_diff << ',' << angle_ratio_diff << ',' << center_dis_diff<<endl;
                     // Matching male_light and female_light
 
-                    if (area_ratio_diff < MATCH_COND.MAX_AREA_RATIO_DIFF && perimeter_ratio_diff < MATCH_COND.MAX_PERIMRTER_RATIO_DIFF  && height_ratio_diff < MATCH_COND.MAX_HEIGHT_RATIO_DIFF)
+                    if (center_dis_diff < 3.5 * male_light.get_height() && center_y_diff < 0.8 * male_light.get_height() && center_x_diff > 1.2 * male_light.get_width())
                     {
-                        if (angle_ratio_diff < MATCH_COND.MAX_ANGLE_DIFF && center_dis_diff < 2.5 * male_light.get_height() && center_y_diff < 0.8 * male_light.get_height())
+                        //choose the closest matchling light
+                        if (min_center_dis == 0 || center_dis_diff < min_center_dis)
                         {
-                            //choose the closest matchling light
-                            if (min_center_dis == 0 || center_dis_diff < min_center_dis)
+                            if (max_closest_area == 0 || (female_light.get_area() + male_light.get_area()) / 2 > max_closest_area)
                             {
-                                if (max_closest_area == 0 || (female_light.get_area() + male_light.get_area()) / 2 > max_closest_area)
-                                {
-                                    //get the aim matching lights
-                                    max_closest_area = (female_light.get_area() + male_light.get_area()) / 2;
-                                    min_center_dis = center_dis_diff;
+                                //get the aim matching lights
+                                max_closest_area = (female_light.get_area() + male_light.get_area()) / 2;
+                                min_center_dis = center_dis_diff;
 
-                                    aim_light[1] = female_light;
+                                aim_light[0] = male_light;
+                                aim_light[1] = female_light;
 
-                                    aim_light[0].rect.points(male_light_vertices);
-                                    aim_light[1].rect.points(female_light_vertices);
+                                //save the points of the MinareaRect
+                                aim_light[0].rect.points(male_light_vertices);
+                                aim_light[1].rect.points(female_light_vertices);
 
-                                    flag = true;
-                                }
+                                flag = true;
                             }
                         }
                     }
                 }
             }
-            if (flag)
-            {
-                line(frame, aim_light[0].rect.center, aim_light[1].rect.center, Scalar(255, 255, 255), 5, 8, 0);
-                Point aim;
-                aim = Point2f((aim_light[0].rect.center.x + aim_light[1].rect.center.x) / 2, (aim_light[0].rect.center.y + aim_light[1].rect.center.y) / 2);
-                circle(frame, aim, 7, Scalar(0, 0, 255), -1, 8, 0);
-                //draw rectangle
-                for (int i = 0; i < 4; i++)
-                    line(frame, male_light_vertices[i], male_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
-                //draw rectangle
-                for (int i = 0; i < 4; i++)
-                    line(frame, female_light_vertices[i], female_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
-                break;
-            }
+        }
+        if (flag)
+        {
+            //draw rectangle
+            for (int i = 0; i < 4; i++)
+                line(frame, male_light_vertices[i], male_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
+            //draw rectangle
+            for (int i = 0; i < 4; i++)
+                line(frame, female_light_vertices[i], female_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
+
+            // cout<< aim_light[0].get_width()<<','<<aim_light[0].get_height()<<endl;
+
+            //draw the aim point
+            line(frame, aim_light[0].rect.center, aim_light[1].rect.center, Scalar(255, 255, 255), 5, 8, 0);
+            Point aim;
+            aim = Point2f((aim_light[0].rect.center.x + aim_light[1].rect.center.x) / 2, (aim_light[0].rect.center.y + aim_light[1].rect.center.y) / 2);
+            circle(frame, aim, 7, Scalar(0, 0, 255), -1, 8, 0);
         }
 
         // //绘制连线
@@ -201,6 +239,7 @@ int main()
 
         // pre_center = center;
 
+        #ifdef DEBUG
         imshow("Origin", frame);
         imshow("Video", src);
 
@@ -211,6 +250,7 @@ int main()
                 break;
             }
         }
+        #endif // DEBUG
     }
 }
 
@@ -242,13 +282,13 @@ RotatedRect tranform_rect(RotatedRect &rect)
     return rect;
 }
 
-//swap the width and height of the rectangle
-void swap(float width, float height)
-{
-    float temp = width;
-    width = height;
-    height = temp;
-}
+// //swap the width and height of the rectangle
+// void swap(float &width, float &height)
+// {
+//     float temp = width;
+//     width = height;
+//     height = temp;
+// }
 
 //calc the distance between two points
 float distance(Point2f p1, Point2f p2)
@@ -256,4 +296,11 @@ float distance(Point2f p1, Point2f p2)
     float x_diff = p1.x - p2.x;
     float y_diff = p1.y - p2.y;
     return sqrt(pow(x_diff, 2) + pow(y_diff, 2));
+}
+
+float get_slope(Point2f p1, Point2f p2)
+{
+    float y_diff = p2.y - p1.y;
+    float x_diff = p2.x - p1.x;
+    return abs(y_diff / x_diff);
 }
