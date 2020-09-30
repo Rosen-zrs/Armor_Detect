@@ -33,7 +33,6 @@ int main()
     resizeWindow("Video", Size(640, 480));
     moveWindow("Origin", 800, 90);
 #endif // DEBUG
-    
 
     //定义Mat变量
     Mat frame, src, dst;
@@ -51,7 +50,7 @@ int main()
     double start, end, dt;
 
     //定义相乘系数
-    double factor = 5000.0;
+    double factor = 500.0;
     while (capture.read(frame))
     {
         //计算程序运行时间
@@ -81,7 +80,7 @@ int main()
         //定义动态灯条数组
         vector<Light> lights;
 
-        //Define Matching Condition struct
+        //定义匹配条件结构体
         Match_Condition MATCH_COND;
 
         for (size_t i = 0; i < contours.size(); i++)
@@ -92,12 +91,12 @@ int main()
                 continue;
             }
 
-            //imitate ellipse of the contour and make minArearect
             if (contours[i].size() > 5)
             {
+                //椭圆拟合
                 rect = fitEllipse(contours[i]);
 
-                //adjust the rect for screen
+                //调整矩形角度和宽高
                 tranform_rect(rect);
 
                 rect.points(vertices);
@@ -107,7 +106,7 @@ int main()
                 if (rect.size.width / rect.size.height > MATCH_COND.MAX_WH_RATIO || rect.size.height / rect.size.width > 4.5 || contour_area / rect.size.area() < MATCH_COND.MIN_AREA_FULL)
                     continue;
 
-                //draw rectangle
+                //绘制矩形
                 for (int i = 0; i < 4; i++)
                     line(frame, vertices[i], vertices[(i + 1) % 4], Scalar(0, 255, 0), 1);
 
@@ -118,128 +117,100 @@ int main()
             }
         }
 
-        Light aim_light[2];
-        bool flag = false;
+        vector<Armor> Matching_Armor;
+        vector<Armor> Aim_Armor;
 
         Point2f male_light_vertices[4];   //定义公灯条矩形的4个顶点
         Point2f female_light_vertices[4]; //定义母灯条的4个顶点
 
-        float min_center_dis = 0;
-        float max_closest_area = 0;
-
-        //Matching the light
+        //匹配灯条
         for (auto male_light : lights)
         {
             for (auto female_light : lights)
             {
                 if (female_light != male_light)
                 {
-                    //calc the matching character
+                    //计算灯条特征逐步筛选
 
-                    //area screen
+                    //面积差值
                     float area_ratio_diff = abs(male_light.get_area() - female_light.get_area());
-
                     if (area_ratio_diff > male_light.get_area() * MATCH_COND.MAX_AREA_RATIO_DIFF && area_ratio_diff > female_light.get_area() * MATCH_COND.MAX_AREA_RATIO_DIFF)
                         continue;
 
-                    //perimeter screen
-                    float perimeter_ratio_diff = abs(male_light.get_perimeter() - female_light.get_perimeter());
-                    if (perimeter_ratio_diff > male_light.get_perimeter() * MATCH_COND.MAX_PERIMRTER_RATIO_DIFF && perimeter_ratio_diff > female_light.get_perimeter() * MATCH_COND.MAX_PERIMRTER_RATIO_DIFF)
+                    //宽度和高度差值
+                    float height_diff = abs(male_light.get_height() - female_light.get_height());
+                    if (height_diff > male_light.get_height() * MATCH_COND.MAX_HEIGHT_RATIO_DIFF && height_diff > female_light.get_height() * MATCH_COND.MAX_HEIGHT_RATIO_DIFF)
                         continue;
 
-                    //width and height screen
-                    float width_ratio_diff = abs(male_light.get_width() - female_light.get_width());
-                    if (width_ratio_diff > male_light.get_width() * MATCH_COND.MAX_WIDTH_RATIO_DIFF && width_ratio_diff > female_light.get_width() * MATCH_COND.MAX_WIDTH_RATIO_DIFF)
+                    //角度差值
+                    float angle_diff = abs(male_light.get_angle() - female_light.get_angle());
+                    if (angle_diff > MATCH_COND.MAX_ANGLE_DIFF)
                         continue;
 
-                    float height_ratio_diff = abs(male_light.get_height() - female_light.get_height());
-                    if (height_ratio_diff > male_light.get_height() * MATCH_COND.MAX_HEIGHT_RATIO_DIFF && height_ratio_diff > female_light.get_height() * MATCH_COND.MAX_HEIGHT_RATIO_DIFF)
-                        continue;
-
-                    float angle_ratio_diff = abs(male_light.get_angle() - female_light.get_angle());
-                    if (angle_ratio_diff > MATCH_COND.MAX_ANGLE_DIFF)
-                        continue;
-
+                    //中心距离差值
                     float center_dis_diff = distance(male_light.get_center(), female_light.get_center());
                     float center_y_diff = abs(male_light.get_center().y - female_light.get_center().y);
                     float center_x_diff = abs(male_light.get_center().x - female_light.get_center().x);
 
-                    //clac slope of center and rect
-                    // float center_slope = 0 - abs(center_y_diff / center_x_diff);
-                    // float mean_rect_slope = (tan(male_light.get_angle() + 90) + tan(female_light.get_angle() + 90 ) / 2);
-                    // float slope_diff = abs(center_slope * mean_rect_slope + 1);
-                    // if(slope_diff > MATCH_COND.MAX_SLOPE_DIFF) continue;
-
-                    // cout << male_light.get_area() << ',' << female_light.get_area() << ',' << area_ratio_diff << ',' << perimeter_ratio_diff << ',' << width_ratio_diff << ',' <<
-                    // height_ratio_diff << ',' << angle_ratio_diff << ',' << center_dis_diff<<endl;
-                    // Matching male_light and female_light
 
                     if (center_dis_diff < 3.5 * male_light.get_height() && center_y_diff < 0.8 * male_light.get_height() && center_x_diff > 1.2 * male_light.get_width())
                     {
-                        //choose the closest matchling light
-                        if (min_center_dis == 0 || center_dis_diff < min_center_dis)
-                        {
-                            if (max_closest_area == 0 || (female_light.get_area() + male_light.get_area()) / 2 > max_closest_area)
-                            {
-                                //get the aim matching lights
-                                max_closest_area = (female_light.get_area() + male_light.get_area()) / 2;
-                                min_center_dis = center_dis_diff;
-
-                                aim_light[0] = male_light;
-                                aim_light[1] = female_light;
-
-                                //save the points of the MinareaRect
-                                aim_light[0].rect.points(male_light_vertices);
-                                aim_light[1].rect.points(female_light_vertices);
-
-                                flag = true;
-                            }
-                        }
+                        Matching_Armor.push_back(Armor(male_light, female_light, height_diff, angle_diff, center_dis_diff));
                     }
                 }
             }
         }
-        if (flag)
+        if (Matching_Armor.size() >= 1)
         {
-            //draw rectangle
+            sort(Matching_Armor.begin(), Matching_Armor.end(), 
+            [](Armor &A1, Armor &A2) {return A1.get_height() > A2.get_height();});
+
+            for(int i = 0; i < 2; i++)
+            {
+                Aim_Armor.push_back(Matching_Armor[i]);
+            }
+
+            sort(Matching_Armor.begin(), Matching_Armor.end(), 
+            [](Armor &A1, Armor &A2) {return A1.get_Angle_diff() > A2.get_Angle_diff();});
+
+
+            Light aim_male_light, aim_female_light;
+            aim_male_light = Matching_Armor[0].get_male_light();
+            aim_female_light = Matching_Armor[0].get_female_light();
+            
+            aim_male_light.rect.points(male_light_vertices);
+            aim_female_light.rect.points(female_light_vertices);
+
+            //绘制矩形
             for (int i = 0; i < 4; i++)
                 line(frame, male_light_vertices[i], male_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
-            //draw rectangle
             for (int i = 0; i < 4; i++)
                 line(frame, female_light_vertices[i], female_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
 
             // cout<< aim_light[0].get_width()<<','<<aim_light[0].get_height()<<endl;
 
-            //draw the aim point
-            line(frame, aim_light[0].rect.center, aim_light[1].rect.center, Scalar(255, 255, 255), 5, 8, 0);
-            Point aim;
-            aim = Point2f((aim_light[0].rect.center.x + aim_light[1].rect.center.x) / 2, (aim_light[0].rect.center.y + aim_light[1].rect.center.y) / 2);
-            circle(frame, aim, 7, Scalar(0, 0, 255), -1, 8, 0);
+            //标定目标矩形
+            line(frame, aim_male_light.rect.center, aim_female_light.rect.center, Scalar(255, 255, 255), 3, 8, 0);
+            center = Point2f((aim_male_light.rect.center.x + aim_female_light.rect.center.x) / 2, (aim_male_light.rect.center.y + aim_female_light.rect.center.y) / 2);
+            circle(frame, center, 5, Scalar(0, 0, 255), -1, 8, 0);
         }
 
-        // //绘制连线
-        // line(frame, p_light[0].get_top_point(), p_light[1].get_botton_point(), Scalar(255, 255, 255), 1, 8, 0);
-        // line(frame, p_light[1].get_top_point(), p_light[0].get_botton_point(), Scalar(255, 255, 255), 1, 8, 0);
 
-        // //标定矩形和中心点
-        // center = Point((p_light[0].get_center().x + p_light[1].get_center().x) / 2, (p_light[0].get_center().y + p_light[1].get_center().y) / 2);
-        // circle(frame, center, 5, Scalar(0, 0, 255), -1, 8, 0);
+        //求导进行预测
+        dx = center.x - pre_center.x;
+        dy = center.y - pre_center.y;
 
-        // //求导进行预测
-        // dx = center.x - pre_center.x;
-        // dy = center.y - pre_center.y;
+        //计算运行时间
+        end = static_cast<double>(getTickCount());
+        dt = (end - start) / getTickFrequency();
 
-        // //计算运行时间
-        // end = static_cast<double>(getTickCount());
-        // dt = (end - start) / getTickFrequency();
+        //计算出预测中心点坐标
+        predict_center = Point2f(center.x + factor * dx * dt, center.y + factor * dy * dt);
+        circle(frame, predict_center, 10, Scalar(0, 255, 0), -1, 8, 0);
 
-        // //计算出预测中心点坐标
-        // predict_center = Point2f(center.x + factor * dx * dt, center.y + factor * dy * dt);
-        // circle(frame, predict_center, 5, Scalar(0, 255, 0), -1, 8, 0);
+        pre_center = center;
 
-        // pre_center = center;
-
-        #ifdef DEBUG
+#ifdef DEBUG
         imshow("Origin", frame);
         imshow("Video", src);
 
@@ -250,11 +221,11 @@ int main()
                 break;
             }
         }
-        #endif // DEBUG
+#endif // DEBUG
     }
 }
 
-//adjust the angle of the rect
+//调整矩形角度和宽高
 RotatedRect tranform_rect(RotatedRect &rect)
 {
     float &width = rect.size.width;
@@ -290,17 +261,10 @@ RotatedRect tranform_rect(RotatedRect &rect)
 //     height = temp;
 // }
 
-//calc the distance between two points
+//计算距离函数
 float distance(Point2f p1, Point2f p2)
 {
     float x_diff = p1.x - p2.x;
     float y_diff = p1.y - p2.y;
     return sqrt(pow(x_diff, 2) + pow(y_diff, 2));
-}
-
-float get_slope(Point2f p1, Point2f p2)
-{
-    float y_diff = p2.y - p1.y;
-    float x_diff = p2.x - p1.x;
-    return abs(y_diff / x_diff);
 }

@@ -6,5 +6,5 @@ CXX_FLAGS = -g
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/usr/local/include/opencv4 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/../include 
+CXX_INCLUDES = -I/usr/local/include/opencv4 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/../Object/include -I/usr/local/include/opencv4/opencv2 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/../include 
 

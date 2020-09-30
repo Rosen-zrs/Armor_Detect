@@ -40,6 +40,7 @@ CMakeFiles/Detect.dir/Armor_Detect.cpp.o: /usr/local/include/opencv4/opencv2/cor
 CMakeFiles/Detect.dir/Armor_Detect.cpp.o: /usr/local/include/opencv4/opencv2/core/utils/tls.hpp
 CMakeFiles/Detect.dir/Armor_Detect.cpp.o: /usr/local/include/opencv4/opencv2/core/version.hpp
 CMakeFiles/Detect.dir/Armor_Detect.cpp.o: /usr/local/include/opencv4/opencv2/core/vsx_utils.hpp
+CMakeFiles/Detect.dir/Armor_Detect.cpp.o: /usr/local/include/opencv4/opencv2/cvconfig.h
 CMakeFiles/Detect.dir/Armor_Detect.cpp.o: /usr/local/include/opencv4/opencv2/dnn.hpp
 CMakeFiles/Detect.dir/Armor_Detect.cpp.o: /usr/local/include/opencv4/opencv2/dnn/dict.hpp
 CMakeFiles/Detect.dir/Armor_Detect.cpp.o: /usr/local/include/opencv4/opencv2/dnn/dnn.hpp

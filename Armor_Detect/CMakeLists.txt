@@ -17,8 +17,8 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 aux_source_directory(. DIR_SRCS)
 
-# include_directories(../Object/include)
-# include_directories(/usr/local/include/opencv4/opencv2)
+include_directories(../Object/include)
+include_directories(/usr/local/include/opencv4/opencv2)
 
 # 添加 math 子目录
 

@@ -21,6 +21,10 @@ time.h
 -
 
 /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/include/Armor.h
+Light.h
+/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/include/Light.h
+math.h
+/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/include/math.h
 
 /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/include/Light.h
 /usr/local/include/opencv4/opencv2/opencv.hpp
@@ -375,6 +379,8 @@ opencv2/core/cvdef.h
 /usr/local/include/opencv4/opencv2/core/opencv2/core/cvdef.h
 assert.h
 -
+
+/usr/local/include/opencv4/opencv2/cvconfig.h
 
 /usr/local/include/opencv4/opencv2/dnn.hpp
 opencv2/dnn/dnn.hpp

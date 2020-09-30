@@ -1,17 +1,17 @@
 [
 {
   "directory": "/home/rosen/桌面/Rosen/RM/Armor_Detect/build",
-  "command": "/usr/bin/g++-7   -isystem /usr/local/include/opencv4  -g   -std=gnu++11 -o CMakeFiles/Detect.dir/Armor_Detect.cpp.o -c /home/rosen/桌面/Rosen/RM/Armor_Detect/Armor_Detect.cpp",
+  "command": "/usr/bin/g++-7   -isystem /usr/local/include/opencv4 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/../Object/include -I/usr/local/include/opencv4/opencv2  -g   -std=gnu++11 -o CMakeFiles/Detect.dir/Armor_Detect.cpp.o -c /home/rosen/桌面/Rosen/RM/Armor_Detect/Armor_Detect.cpp",
   "file": "/home/rosen/桌面/Rosen/RM/Armor_Detect/Armor_Detect.cpp"
 },
 {
   "directory": "/home/rosen/桌面/Rosen/RM/Armor_Detect/build/Object",
-  "command": "/usr/bin/g++-7   -I/usr/local/include/opencv4 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/../include  -g   -o CMakeFiles/Object.dir/Armor.cpp.o -c /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/Armor.cpp",
+  "command": "/usr/bin/g++-7   -I/usr/local/include/opencv4 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/../Object/include -I/usr/local/include/opencv4/opencv2 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/../include  -g   -o CMakeFiles/Object.dir/Armor.cpp.o -c /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/Armor.cpp",
   "file": "/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/Armor.cpp"
 },
 {
   "directory": "/home/rosen/桌面/Rosen/RM/Armor_Detect/build/Object",
-  "command": "/usr/bin/g++-7   -I/usr/local/include/opencv4 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/../include  -g   -o CMakeFiles/Object.dir/Light.cpp.o -c /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/Light.cpp",
+  "command": "/usr/bin/g++-7   -I/usr/local/include/opencv4 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/../Object/include -I/usr/local/include/opencv4/opencv2 -I/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/../include  -g   -o CMakeFiles/Object.dir/Light.cpp.o -c /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/Light.cpp",
   "file": "/home/rosen/桌面/Rosen/RM/Armor_Detect/Object/Light.cpp"
 }
 ]
