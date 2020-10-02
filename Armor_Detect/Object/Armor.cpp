@@ -39,3 +39,23 @@ Light Armor::get_female_light()
 {
     return this->lights[1];
 }
+
+Point2f Armor::bl()
+{
+    return this->p_bl;
+}
+
+Point2f Armor::tl()
+{
+    return this->p_tl;
+}
+
+Point2f Armor::tr()
+{
+    return this->p_tr;
+}
+
+Point2f Armor::br()
+{
+    return this->p_br;
+}

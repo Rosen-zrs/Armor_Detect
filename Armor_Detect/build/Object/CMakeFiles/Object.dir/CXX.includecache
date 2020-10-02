@@ -17,6 +17,8 @@ include/Light.h
 /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/include/Armor.h
 Light.h
 /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/include/Light.h
+/usr/local/include/opencv4/opencv2/opencv.hpp
+-
 math.h
 /home/rosen/桌面/Rosen/RM/Armor_Detect/Object/include/math.h
 

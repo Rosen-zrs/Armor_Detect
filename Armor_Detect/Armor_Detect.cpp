@@ -18,7 +18,7 @@ int main()
 {
     //导入视频
     VideoCapture capture(0);
-    capture.open("/home/rosen/桌面/Rosen/RM/Armor_Detect/Armor1.mp4");
+    capture.open("/home/rosen/桌面/Rosen/RM/Armor_Detect/Video/Armor1.mp4");
 
     if (!capture.isOpened())
     {
@@ -45,6 +45,15 @@ int main()
     //储存中心点和上一帧中心点信息
     Point2f center, pre_center, predict_center;
     float dx, dy, Derivative, modulus;
+
+    //定义世界坐标和图像坐标
+    vector<Point3d> World_Coor = {Point3f(0, 0, 0), Point3f(0, 26.5, 0), Point3f(67.5, 26.5, 0), Point3f(67.5, 0, 0)};
+
+    //读取yml文件
+    FileStorage fs2("/home/rosen/桌面/Rosen/RM/Armor_Detect/cam.yml", FileStorage::READ);
+    Mat cameraMatrix2, distCoeffs2;
+    fs2["camera_matrix"] >> cameraMatrix2;
+    fs2["distortion_coefficients"] >> distCoeffs2;
 
     //计算时间变量
     double start, end, dt;
@@ -83,10 +92,12 @@ int main()
         //定义匹配条件结构体
         Match_Condition MATCH_COND;
 
+        bool flag = false;
+
         for (size_t i = 0; i < contours.size(); i++)
         {
             //筛除小轮廓(斑点)
-            if (contourArea(contours[i]) < 10)
+            if (contourArea(contours[i]) < 100)
             {
                 continue;
             }
@@ -118,7 +129,6 @@ int main()
         }
 
         vector<Armor> Matching_Armor;
-        vector<Armor> Aim_Armor;
 
         Point2f male_light_vertices[4];   //定义公灯条矩形的4个顶点
         Point2f female_light_vertices[4]; //定义母灯条的4个顶点
@@ -128,7 +138,7 @@ int main()
         {
             for (auto female_light : lights)
             {
-                if (female_light != male_light)
+                if (female_light != male_light && male_light.get_center().x < female_light.get_center().x)
                 {
                     //计算灯条特征逐步筛选
 
@@ -152,8 +162,7 @@ int main()
                     float center_y_diff = abs(male_light.get_center().y - female_light.get_center().y);
                     float center_x_diff = abs(male_light.get_center().x - female_light.get_center().x);
 
-
-                    if (center_dis_diff < 3.5 * male_light.get_height() && center_y_diff < 0.8 * male_light.get_height() && center_x_diff > 1.2 * male_light.get_width())
+                    if (center_dis_diff < 3.5 * male_light.get_height() && center_y_diff < male_light.get_height() && center_x_diff > 1.2 * male_light.get_width())
                     {
                         Matching_Armor.push_back(Armor(male_light, female_light, height_diff, angle_diff, center_dis_diff));
                     }
@@ -162,53 +171,75 @@ int main()
         }
         if (Matching_Armor.size() >= 1)
         {
-            sort(Matching_Armor.begin(), Matching_Armor.end(), 
-            [](Armor &A1, Armor &A2) {return A1.get_height() > A2.get_height();});
-
-            for(int i = 0; i < 2; i++)
+            float min_dis;
+            int min_index;
+            for (int i = 0; i < Matching_Armor.size(); i++)
             {
-                Aim_Armor.push_back(Matching_Armor[i]);
+                Mat rvec, tvec, R;
+
+                vector<Point2d> Img_Coor;
+                Img_Coor.push_back(Matching_Armor[i].bl());
+                Img_Coor.push_back(Matching_Armor[i].tl());
+                Img_Coor.push_back(Matching_Armor[i].tr());
+                Img_Coor.push_back(Matching_Armor[i].br());
+
+                //slovepnp
+                solvePnP(World_Coor, Img_Coor, cameraMatrix2, distCoeffs2, rvec, tvec);
+                // Rodrigues(rvec, R);
+
+                double Z = abs(rvec.at<double>(2));
+                flag = true;
+                if (!i)
+                {
+                    min_dis = Z;
+                    min_index = i;
+                }
+                if (Z < min_dis)
+                {
+                    min_dis = Z;
+                    min_index = i;
+                }
             }
+            // sort(Matching_Armor.begin(), Matching_Armor.end(),
+            // [](Armor &A1, Armor &A2) {return A1.get_height() > A2.get_height();});
 
-            sort(Matching_Armor.begin(), Matching_Armor.end(), 
-            [](Armor &A1, Armor &A2) {return A1.get_Angle_diff() > A2.get_Angle_diff();});
+            if (flag)
+            {
+                Light aim_male_light, aim_female_light;
+                aim_male_light = Matching_Armor[min_index].get_male_light();
+                aim_female_light = Matching_Armor[min_index].get_female_light();
 
+                aim_male_light.rect.points(male_light_vertices);
+                aim_female_light.rect.points(female_light_vertices);
 
-            Light aim_male_light, aim_female_light;
-            aim_male_light = Matching_Armor[0].get_male_light();
-            aim_female_light = Matching_Armor[0].get_female_light();
-            
-            aim_male_light.rect.points(male_light_vertices);
-            aim_female_light.rect.points(female_light_vertices);
+                //绘制矩形
+                for (int i = 0; i < 4; i++)
+                    line(frame, male_light_vertices[i], male_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
+                for (int i = 0; i < 4; i++)
+                    line(frame, female_light_vertices[i], female_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
 
-            //绘制矩形
-            for (int i = 0; i < 4; i++)
-                line(frame, male_light_vertices[i], male_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
-            for (int i = 0; i < 4; i++)
-                line(frame, female_light_vertices[i], female_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
+                // cout<< aim_light[0].get_width()<<','<<aim_light[0].get_height()<<endl;
 
-            // cout<< aim_light[0].get_width()<<','<<aim_light[0].get_height()<<endl;
-
-            //标定目标矩形
-            line(frame, aim_male_light.rect.center, aim_female_light.rect.center, Scalar(255, 255, 255), 3, 8, 0);
-            center = Point2f((aim_male_light.rect.center.x + aim_female_light.rect.center.x) / 2, (aim_male_light.rect.center.y + aim_female_light.rect.center.y) / 2);
-            circle(frame, center, 5, Scalar(0, 0, 255), -1, 8, 0);
+                //标定目标矩形
+                line(frame, aim_male_light.rect.center, aim_female_light.rect.center, Scalar(255, 255, 255), 3, 8, 0);
+                center = Point2f((aim_male_light.rect.center.x + aim_female_light.rect.center.x) / 2, (aim_male_light.rect.center.y + aim_female_light.rect.center.y) / 2);
+                circle(frame, center, 7, Scalar(0, 0, 255), -1, 8, 0);
+            }
         }
 
+        // //求导进行预测
+        // dx = center.x - pre_center.x;
+        // dy = center.y - pre_center.y;
 
-        //求导进行预测
-        dx = center.x - pre_center.x;
-        dy = center.y - pre_center.y;
+        // //计算运行时间
+        // end = static_cast<double>(getTickCount());
+        // dt = (end - start) / getTickFrequency();
 
-        //计算运行时间
-        end = static_cast<double>(getTickCount());
-        dt = (end - start) / getTickFrequency();
+        // //计算出预测中心点坐标
+        // predict_center = Point2f(center.x + factor * dx * dt, center.y + factor * dy * dt);
+        // circle(frame, predict_center, 10, Scalar(0, 255, 0), -1, 8, 0);
 
-        //计算出预测中心点坐标
-        predict_center = Point2f(center.x + factor * dx * dt, center.y + factor * dy * dt);
-        circle(frame, predict_center, 10, Scalar(0, 255, 0), -1, 8, 0);
-
-        pre_center = center;
+        // pre_center = center;
 
 #ifdef DEBUG
         imshow("Origin", frame);
