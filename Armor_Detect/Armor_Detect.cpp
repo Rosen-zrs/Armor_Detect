@@ -8,7 +8,7 @@
 #define DEBUG
 // #define PREDICT
 
-#define OUTPUT
+// #define OUTPUT
 
 using namespace cv;
 using namespace std;
@@ -50,7 +50,7 @@ int main()
     float dx, dy, Derivative, modulus;
 
     //定义世界坐标和图像坐标
-    vector<Point3d> World_Coor = {Point3f(0, 0, 0), Point3f(0, 26.5, 0), Point3f(67.5, 26.5, 0), Point3f(67.5, 0, 0)};
+    vector<Point3d> World_Coor = {Point3f(0, 0, 0), Point3f(0, 265, 0), Point3f(675, 265, 0), Point3f(675, 0, 0)};
 
     //读取yml文件
     FileStorage fs2("/home/rosen/桌面/Rosen/RM/Armor_Detect/cam.yml", FileStorage::READ);
@@ -123,6 +123,10 @@ int main()
                 float contour_area = contourArea(contours[i]);
 
                 if (rect.size.width / rect.size.height > MATCH_COND.MAX_WH_RATIO || rect.size.height / rect.size.width > 4.5 || contour_area / rect.size.area() < MATCH_COND.MIN_AREA_FULL)
+                    continue;
+
+                //太远的装甲板不选择打击
+                if ( rect.size.height / rect.size.width < 1.8)
                     continue;
 
                 //绘制矩形
@@ -203,8 +207,10 @@ int main()
 #ifdef OUTPUT
                 cout<<i<<":   height: "<<Matching_Armor[i].get_height()<<"    "<< "Z:"<<Z << "   ";
 #endif // OUTPUT
-
+                //改变标志位
                 flag = true;
+
+                //记录最近装甲板下标
                 if (i == 0)
                 {
                     min_dis = Z;
