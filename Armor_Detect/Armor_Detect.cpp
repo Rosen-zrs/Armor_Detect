@@ -8,7 +8,7 @@
 #define DEBUG
 // #define PREDICT
 
-// #define OUTPUT
+#define OUTPUT
 
 using namespace cv;
 using namespace std;
@@ -42,15 +42,13 @@ int main()
     Mat pre_frame;
     Mat c_frame[3];
 
+    Point2f center;
+
     //定义灯条指针
     Light *p_light;
 
-    //储存中心点和上一帧中心点信息
-    Point2f center, pre_center, predict_center;
-    float dx, dy, Derivative, modulus;
-
     //定义世界坐标和图像坐标
-    vector<Point3d> World_Coor = {Point3f(0, 0, 0), Point3f(0, 265, 0), Point3f(675, 265, 0), Point3f(675, 0, 0)};
+    vector<Point3d> World_Coor = {Point3f(0, 0, 0), Point3f(0, 26.5, 0), Point3f(67.5, 26.5, 0), Point3f(67.5, 0, 0)};
 
     //读取yml文件
     FileStorage fs2("/home/rosen/桌面/Rosen/RM/Armor_Detect/cam.yml", FileStorage::READ);
@@ -59,6 +57,10 @@ int main()
     fs2["distortion_coefficients"] >> distCoeffs2;
 
 #ifdef PREDICT
+    //储存中心点和上一帧中心点信息
+    Point2f  pre_center, predict_center;
+    float dx, dy, Derivative, modulus;
+    
     //计算时间变量
     double start, end, dt;
 
@@ -125,9 +127,9 @@ int main()
                 if (rect.size.width / rect.size.height > MATCH_COND.MAX_WH_RATIO || rect.size.height / rect.size.width > 4.5 || contour_area / rect.size.area() < MATCH_COND.MIN_AREA_FULL)
                     continue;
 
-                //太远的装甲板不选择打击
-                if ( rect.size.height / rect.size.width < 1.8)
-                    continue;
+                // //太远的装甲板不选择打击
+                // if ( rect.size.height / rect.size.width < 1.8)
+                //     continue;
 
                 //绘制矩形
                 for (int i = 0; i < 4; i++)
@@ -202,12 +204,14 @@ int main()
                 // Rodrigues(rvec, R);
 
                 //挑选计算出距离最近的装甲板
-                double Z = abs(rvec.at<double>(2));
+                double Z = tvec.at<double>(2);
 
 #ifdef OUTPUT
-                cout<<i<<":   height: "<<Matching_Armor[i].get_height()<<"    "<< "Z:"<<Z << "   ";
-#endif // OUTPUT
-                //改变标志位
+                cout << i << ":   height: " << Matching_Armor[i].get_height() << "    "
+                     << "Z:" << Z << "   ";
+#endif // OUTPUT 
+
+    //改变标志位
                 flag = true;
 
                 //记录最近装甲板下标
@@ -226,7 +230,6 @@ int main()
 #ifdef OUTPUT
             cout << endl;
 #endif // OUTPUT
-
 
             // sort(Matching_Armor.begin(), Matching_Armor.end(),
             // [](Armor &A1, Armor &A2) {return A1.get_height() > A2.get_height();});
@@ -248,9 +251,9 @@ int main()
                     line(frame, female_light_vertices[i], female_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
 
                 //标定目标矩形
-                line(frame, aim_male_light.rect.center, aim_female_light.rect.center, Scalar(255, 255, 255), 3, 8, 0);
+                line(frame, aim_male_light.rect.center, aim_female_light.rect.center, Scalar(255, 255, 255), 2, 8, 0);
                 center = Point2f((aim_male_light.rect.center.x + aim_female_light.rect.center.x) / 2, (aim_male_light.rect.center.y + aim_female_light.rect.center.y) / 2);
-                circle(frame, center, 7, Scalar(0, 0, 255), -1, 8, 0);
+                circle(frame, center, 3, Scalar(0, 0, 255), -1, 8, 0);
             }
         }
 
