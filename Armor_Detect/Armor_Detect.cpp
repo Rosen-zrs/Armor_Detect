@@ -6,6 +6,9 @@
 #include <time.h>
 
 #define DEBUG
+// #define PREDICT
+
+#define OUTPUT
 
 using namespace cv;
 using namespace std;
@@ -55,15 +58,20 @@ int main()
     fs2["camera_matrix"] >> cameraMatrix2;
     fs2["distortion_coefficients"] >> distCoeffs2;
 
+#ifdef PREDICT
     //计算时间变量
     double start, end, dt;
 
     //定义相乘系数
     double factor = 500.0;
+#endif // PREDICT
     while (capture.read(frame))
     {
+
+#ifdef PREDICT
         //计算程序运行时间
         start = static_cast<double>(getTickCount()); //获取开始执行时间
+#endif                                               // PREDICT
 
         //分离图像RGB通道
         split(frame, c_frame);
@@ -97,7 +105,7 @@ int main()
         for (size_t i = 0; i < contours.size(); i++)
         {
             //筛除小轮廓(斑点)
-            if (contourArea(contours[i]) < 100)
+            if (contourArea(contours[i]) < 30)
             {
                 continue;
             }
@@ -162,7 +170,8 @@ int main()
                     float center_y_diff = abs(male_light.get_center().y - female_light.get_center().y);
                     float center_x_diff = abs(male_light.get_center().x - female_light.get_center().x);
 
-                    if (center_dis_diff < 3.5 * male_light.get_height() && center_y_diff < male_light.get_height() && center_x_diff > 1.2 * male_light.get_width())
+                    //根据中心距筛除
+                    if (center_dis_diff < 4 * male_light.get_height() && center_y_diff < 0.8 * male_light.get_height() && center_x_diff > male_light.get_width())
                     {
                         Matching_Armor.push_back(Armor(male_light, female_light, height_diff, angle_diff, center_dis_diff));
                     }
@@ -177,19 +186,26 @@ int main()
             {
                 Mat rvec, tvec, R;
 
+                //传入图像坐标
                 vector<Point2d> Img_Coor;
                 Img_Coor.push_back(Matching_Armor[i].bl());
                 Img_Coor.push_back(Matching_Armor[i].tl());
                 Img_Coor.push_back(Matching_Armor[i].tr());
                 Img_Coor.push_back(Matching_Armor[i].br());
 
-                //slovepnp
+                //slovepnp姿态解算
                 solvePnP(World_Coor, Img_Coor, cameraMatrix2, distCoeffs2, rvec, tvec);
                 // Rodrigues(rvec, R);
 
+                //挑选计算出距离最近的装甲板
                 double Z = abs(rvec.at<double>(2));
+
+#ifdef OUTPUT
+                cout<<i<<":   height: "<<Matching_Armor[i].get_height()<<"    "<< "Z:"<<Z << "   ";
+#endif // OUTPUT
+
                 flag = true;
-                if (!i)
+                if (i == 0)
                 {
                     min_dis = Z;
                     min_index = i;
@@ -200,11 +216,18 @@ int main()
                     min_index = i;
                 }
             }
+
+#ifdef OUTPUT
+            cout << endl;
+#endif // OUTPUT
+
+
             // sort(Matching_Armor.begin(), Matching_Armor.end(),
             // [](Armor &A1, Armor &A2) {return A1.get_height() > A2.get_height();});
 
             if (flag)
             {
+                //取出目标装甲板及其灯条
                 Light aim_male_light, aim_female_light;
                 aim_male_light = Matching_Armor[min_index].get_male_light();
                 aim_female_light = Matching_Armor[min_index].get_female_light();
@@ -218,8 +241,6 @@ int main()
                 for (int i = 0; i < 4; i++)
                     line(frame, female_light_vertices[i], female_light_vertices[(i + 1) % 4], Scalar(0, 0, 255), 2, 8, 0);
 
-                // cout<< aim_light[0].get_width()<<','<<aim_light[0].get_height()<<endl;
-
                 //标定目标矩形
                 line(frame, aim_male_light.rect.center, aim_female_light.rect.center, Scalar(255, 255, 255), 3, 8, 0);
                 center = Point2f((aim_male_light.rect.center.x + aim_female_light.rect.center.x) / 2, (aim_male_light.rect.center.y + aim_female_light.rect.center.y) / 2);
@@ -227,23 +248,26 @@ int main()
             }
         }
 
-        // //求导进行预测
-        // dx = center.x - pre_center.x;
-        // dy = center.y - pre_center.y;
+#ifdef PREDICT
+        //求导进行预测
+        dx = center.x - pre_center.x;
+        dy = center.y - pre_center.y;
 
-        // //计算运行时间
-        // end = static_cast<double>(getTickCount());
-        // dt = (end - start) / getTickFrequency();
+        //计算运行时间
+        end = static_cast<double>(getTickCount());
+        dt = (end - start) / getTickFrequency();
 
-        // //计算出预测中心点坐标
-        // predict_center = Point2f(center.x + factor * dx * dt, center.y + factor * dy * dt);
-        // circle(frame, predict_center, 10, Scalar(0, 255, 0), -1, 8, 0);
+        //计算出预测中心点坐标
+        predict_center = Point2f(center.x + factor * dx * dt, center.y + factor * dy * dt);
+        circle(frame, predict_center, 10, Scalar(0, 255, 0), -1, 8, 0);
 
-        // pre_center = center;
+        pre_center = center;
+#endif // PREDICT
 
 #ifdef DEBUG
         imshow("Origin", frame);
         imshow("Video", src);
+#endif // DEBUG
 
         if (waitKey(30) == 27)
         {
@@ -252,7 +276,6 @@ int main()
                 break;
             }
         }
-#endif // DEBUG
     }
 }
 
@@ -262,8 +285,6 @@ RotatedRect tranform_rect(RotatedRect &rect)
     float &width = rect.size.width;
     float &height = rect.size.height;
     float &angle = rect.angle;
-
-    //according to width and height change the direction
 
     if (angle >= 90.0)
         angle -= 180.0;
@@ -283,14 +304,6 @@ RotatedRect tranform_rect(RotatedRect &rect)
 
     return rect;
 }
-
-// //swap the width and height of the rectangle
-// void swap(float &width, float &height)
-// {
-//     float temp = width;
-//     width = height;
-//     height = temp;
-// }
 
 //计算距离函数
 float distance(Point2f p1, Point2f p2)
