@@ -6,9 +6,10 @@
 #include <time.h>
 
 #define DEBUG
+#define NORMAL
+// #define SOLVEPNP
 // #define PREDICT
-
-#define OUTPUT
+// #define OUTPUT
 
 using namespace cv;
 using namespace std;
@@ -58,9 +59,9 @@ int main()
 
 #ifdef PREDICT
     //储存中心点和上一帧中心点信息
-    Point2f  pre_center, predict_center;
+    Point2f pre_center, predict_center;
     float dx, dy, Derivative, modulus;
-    
+
     //计算时间变量
     double start, end, dt;
 
@@ -107,7 +108,7 @@ int main()
         for (size_t i = 0; i < contours.size(); i++)
         {
             //筛除小轮廓(斑点)
-            if (contourArea(contours[i]) < 30)
+            if (contourArea(contours[i]) < 80)
             {
                 continue;
             }
@@ -120,8 +121,6 @@ int main()
                 //调整矩形角度和宽高
                 tranform_rect(rect);
 
-                rect.points(vertices);
-
                 float contour_area = contourArea(contours[i]);
 
                 if (rect.size.width / rect.size.height > MATCH_COND.MAX_WH_RATIO || rect.size.height / rect.size.width > 4.5 || contour_area / rect.size.area() < MATCH_COND.MIN_AREA_FULL)
@@ -130,10 +129,6 @@ int main()
                 // //太远的装甲板不选择打击
                 // if ( rect.size.height / rect.size.width < 1.8)
                 //     continue;
-
-                //绘制矩形
-                for (int i = 0; i < 4; i++)
-                    line(frame, vertices[i], vertices[(i + 1) % 4], Scalar(0, 255, 0), 1);
 
                 //配置灯条成员信息
                 Light light = Light(rect, contourArea(contours[i]), arcLength(contours[i], true));
@@ -152,24 +147,24 @@ int main()
         {
             for (auto female_light : lights)
             {
-                if (female_light != male_light && male_light.get_center().x < female_light.get_center().x)
+                if (male_light.get_center().x < female_light.get_center().x)
                 {
                     //计算灯条特征逐步筛选
 
                     //面积差值
                     float area_ratio_diff = abs(male_light.get_area() - female_light.get_area());
                     if (area_ratio_diff > male_light.get_area() * MATCH_COND.MAX_AREA_RATIO_DIFF && area_ratio_diff > female_light.get_area() * MATCH_COND.MAX_AREA_RATIO_DIFF)
-                        continue;
+                    continue;
 
                     //宽度和高度差值
                     float height_diff = abs(male_light.get_height() - female_light.get_height());
                     if (height_diff > male_light.get_height() * MATCH_COND.MAX_HEIGHT_RATIO_DIFF && height_diff > female_light.get_height() * MATCH_COND.MAX_HEIGHT_RATIO_DIFF)
-                        continue;
+                    continue;
 
                     //角度差值
                     float angle_diff = abs(male_light.get_angle() - female_light.get_angle());
                     if (angle_diff > MATCH_COND.MAX_ANGLE_DIFF)
-                        continue;
+                    continue;
 
                     //中心距离差值
                     float center_dis_diff = distance(male_light.get_center(), female_light.get_center());
@@ -177,19 +172,39 @@ int main()
                     float center_x_diff = abs(male_light.get_center().x - female_light.get_center().x);
 
                     //根据中心距筛除
-                    if (center_dis_diff < 4 * male_light.get_height() && center_y_diff < 0.8 * male_light.get_height() && center_x_diff > male_light.get_width())
+                    if (center_dis_diff < 3.5 * male_light.get_height() && center_y_diff < 0.8 * male_light.get_height() && center_x_diff > male_light.get_width())
                     {
                         Matching_Armor.push_back(Armor(male_light, female_light, height_diff, angle_diff, center_dis_diff));
                     }
                 }
             }
         }
+
+        for (auto M : Matching_Armor)
+        {
+            Point2f vertices1[4], vertices2[4]; //定义矩形的4个顶点
+            RotatedRect r1 = M.get_male_light().rect;
+            RotatedRect r2 = M.get_female_light().rect;
+
+            r1.points(vertices1);
+            r2.points(vertices2);
+
+            //绘制矩形
+            for (int i = 0; i < 4; i++)
+            {
+                line(frame, vertices1[i], vertices1[(i + 1) % 4], Scalar(0, 255, 0), 1);
+                line(frame, vertices2[i], vertices2[(i + 1) % 4], Scalar(0, 255, 0), 1);
+            }
+        }
+
+        int min_index = 0;
+        float min_dis, max_area;
+
         if (Matching_Armor.size() >= 1)
         {
-            float min_dis;
-            int min_index;
             for (int i = 0; i < Matching_Armor.size(); i++)
             {
+#ifdef SOLVEPNP
                 Mat rvec, tvec, R;
 
                 //传入图像坐标
@@ -206,12 +221,7 @@ int main()
                 //挑选计算出距离最近的装甲板
                 double Z = tvec.at<double>(2);
 
-#ifdef OUTPUT
-                cout << i << ":   height: " << Matching_Armor[i].get_height() << "    "
-                     << "Z:" << Z << "   ";
-#endif // OUTPUT 
-
-    //改变标志位
+                //改变标志位
                 flag = true;
 
                 //记录最近装甲板下标
@@ -225,14 +235,60 @@ int main()
                     min_dis = Z;
                     min_index = i;
                 }
-            }
+#endif // SOLVEPNP
+
+#ifdef NORMAL
+                //改变标志位
+                flag = true;
+
+                float mean_area = (Matching_Armor[i].get_male_light().get_area() + Matching_Armor[i].get_female_light().get_area()) / 2;
+
+                //记录灯条对最大面积
+                if (i == 0)
+                {
+                    max_area = mean_area;
+                }
+                else
+                {
+                    if (mean_area > max_area)
+                    {
+                        max_area = mean_area;
+                    }
+                }
+
+#endif // NORMAL
 
 #ifdef OUTPUT
-            cout << endl;
+                cout << i << ":   height: " << Matching_Armor[i].get_height() << "    "
+                     << "Z:" << Z << "   ";
 #endif // OUTPUT
+            }
 
-            // sort(Matching_Armor.begin(), Matching_Armor.end(),
-            // [](Armor &A1, Armor &A2) {return A1.get_height() > A2.get_height();});
+#ifdef NORMAL
+            //当面积与最大面积相近时，以中心矩离优先匹配
+            if (flag)
+            {
+                for (int i = 0; i < Matching_Armor.size(); i++)
+                {
+                    if (i == 0)
+                    {
+                        min_dis = Matching_Armor[i].get_center_dis_diff();
+                    }
+                    //计算灯条平均面积
+                    float mean_area = (Matching_Armor[i].get_male_light().get_area() + Matching_Armor[i].get_female_light().get_area()) / 2;
+
+                    if (abs(mean_area - max_area) / max_area < 0.1)
+                    {
+                        //匹配最近灯条对
+                        if (Matching_Armor[i].get_center_dis_diff() < min_dis)
+                        {
+                            min_dis = Matching_Armor[i].get_center_dis_diff();
+                            min_index = i;
+                        }
+                    }
+                }
+            }
+#endif // NORMAL
 
             if (flag)
             {

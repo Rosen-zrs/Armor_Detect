@@ -40,6 +40,11 @@ Light Armor::get_female_light()
     return this->lights[1];
 }
 
+float Armor::get_area()
+{
+    return this->Area;
+}
+
 Point2f Armor::bl()
 {
     return this->p_bl;

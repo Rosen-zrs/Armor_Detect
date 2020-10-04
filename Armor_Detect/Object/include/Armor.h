@@ -26,6 +26,7 @@ public:
         this->p_tl = male_light_vertices[1];
         this->p_tr = female_light_vertices[2];
         this->p_br = female_light_vertices[3];
+        this->Area = this->height * this->width;
     }
 
     float get_height();
@@ -33,6 +34,8 @@ public:
     float get_H_diff();
     float get_Angle_diff();
     float get_center_dis_diff();
+    float get_area();
+
     Light get_male_light();
     Light get_female_light();
 
@@ -48,6 +51,7 @@ private:
     float H_diff;          //灯条高度差
     float Angle_diff;      //灯条角度差
     float center_dis_diff; //灯条中心距离差
+    float Area;
     Point2f p_tl, p_tr, p_bl, p_br;//装甲板矩形角点
 };
 
